@@ -12,24 +12,33 @@ const createPayment = async (req, res) =>{
           beneficiary_name,
           beneficiary_account_number,
           swift_code,
-          bank_details,
+          bank_name,
           bank_address,
           bank_country 
         } = req.body
 
 //Validate the required fields
         if(!amount || !currency || !provider || !beneficiary_name || !beneficiary_account_number ||
-            !swift_code || !bank_details || !bank_address || !bank_country){
+            !swift_code || !bank_name || !bank_address || !bank_country){
                 return res.status(400).json({
                     success: false,
                     message: 'All required fields must be provided',
                     required_fields: ['amount','currency','provider','beneficiary_name','beneficiary_account_number',
-                        'swift_code','bank_details','bank_address','bank_country']
+                        'swift_code','bank_name','bank_address','bank_country']
                 });
             }
 
+
+            //validate amount format
+        if (typeof amount === 'undefined' || amount === null) {
+           return res.status(400).json({
+              success: false,
+              message: 'Amount is required'
+         });
+        }
+
 //validate amount format            
-        const amountValidation = validate (amount.ToString(), 'amount');
+        const amountValidation = validate (amount.toString(), 'amount');
         if(!amountValidation.isValid){
             return res.status(400).json({
                 success: false,
@@ -77,13 +86,13 @@ if(!swiftValidation.isValid){
 }
 
 //Validate beneficiary account number
-const accountValidation = validate(beneficiary_account_number.toUpperCase(), 'beneficiaryAccount');
-if (!beneficiary_account_number.isValid){
+const accountValidation = validate(beneficiary_account_number, 'beneficiaryAccount');
+if (!accountValidation.isValid){  // Changed from beneficiary_account_number.isValid
     return res.status(400).json({
         success: false,
         message: 'invalid beneficiary account number format',
         error: accountValidation.error,
-        format: 'Account number must be 8 to 34 alphanumeric character'
+        format: 'Account number must be 8 to 34 numeric characters'  // Updated message
     });
 }
 
@@ -114,6 +123,20 @@ if (!nameValidation.isValid){
  }
 
  // Step 9: Create transaction
+console.log('Creating transaction with data:', {
+    customer_id: req.user.id,
+    amount: numAmount,
+    currency: currency.toUpperCase(),
+    provider: provider || 'SWIFT',
+    beneficiary_account_number: beneficiary_account_number,
+    beneficiary_name: beneficiary_name.trim(),
+    swift_code: swift_code.toUpperCase(),
+    bank_name: bank_name.trim(),
+    bank_address: bank_address?.trim() || '',
+    bank_country: bank_country.trim(),
+    status: 'pending'
+});
+
  const transaction = await Transaction.create({
  customer_id: req.user.id,
  amount: numAmount,
@@ -122,13 +145,13 @@ if (!nameValidation.isValid){
  beneficiary_account_number: beneficiary_account_number.toUpperCase(),
  beneficiary_name: beneficiary_name.trim(),
  swift_code: swift_code.toUpperCase(),
- bank_details: {
  bank_name: bank_name.trim(),
  bank_address: bank_address?.trim() || '',
- bank_country: bank_country.trim()
- },
+ bank_country: bank_country.trim(),
  status: 'pending'
  });
+
+ console.log('Transaction created:', transaction)
 
  // Step 10: Populate customer info for response
  await transaction.populate('customer_id', 'full_name');
@@ -139,13 +162,14 @@ if (!nameValidation.isValid){
  message: 'Payment created successfully',
  data: {
  transaction_id: transaction._id,
- transaction_reference: transaction.transaction_reference,
  amount: transaction.amount,
  currency: transaction.currency,
  beneficiary_name: transaction.beneficiary_name,
  beneficiary_account: transaction.beneficiary_account_number,
  swift_code: transaction.swift_code,
- bank_name: transaction.bank_details.bank_name,
+ bank_name: transaction.bank_name,  
+ bank_address: transaction.bank_address,  
+ bank_country: transaction.bank_country, 
  status: transaction.status,
  created_at: transaction.createdAt
  }
@@ -205,14 +229,14 @@ const getCustomerTransactions = async (req, res) => {
  // Format transactions for response
  const formattedTransactions = transactions.map(txn => ({
  transaction_id: txn._id,
- transaction_reference: txn.transaction_reference,
  amount: txn.amount,
  currency: txn.currency,
  beneficiary_name: txn.beneficiary_name,
  beneficiary_account: txn.beneficiary_account_number,
  swift_code: txn.swift_code,
- bank_name: txn.bank_details.bank_name,
- bank_country: txn.bank_details.bank_country,
+ bank_name: txn.bank_name,  
+ bank_address: txn.bank_address,  
+ bank_country: txn.bank_country,
  status: txn.status,
  verified_by: txn.verified_by ? {
  name: txn.verified_by.employee_name,
@@ -225,7 +249,7 @@ const getCustomerTransactions = async (req, res) => {
 
  res.status(200).json({
  success: true,
- data: transactions
+ data: formattedTransactions
  });
 
  } catch (error) {
@@ -261,14 +285,15 @@ const getTransactionById = async (req, res) => {
  success: true,
  data: {
  transaction_id: transaction._id,
- transaction_reference: transaction.transaction_reference,
  amount: transaction.amount,
  currency: transaction.currency,
  provider: transaction.provider,
  beneficiary_name: transaction.beneficiary_name,
  beneficiary_account: transaction.beneficiary_account_number,
  swift_code: transaction.swift_code,
- bank_details: transaction.bank_details,
+ bank_name: transaction.bank_name,
+ bank_address: transaction.bank_address,
+ bank_country: transaction.bank_country,
  status: transaction.status,
  verified_by: transaction.verified_by ? {
  name: transaction.verified_by.employee_name,

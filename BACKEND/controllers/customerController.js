@@ -292,6 +292,10 @@ const logoutCustomer = async (req, res) => {
   }
 };
 
+
+
+
+
 module.exports = {
   registerCustomer,
   loginCustomer,

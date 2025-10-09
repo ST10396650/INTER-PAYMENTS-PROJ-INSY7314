@@ -12,10 +12,10 @@ const patterns = {
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
   
   // Payment fields
-  amount: /^\d+(\.\d{1,2})?$/,
+  amount: /^\d+(\.\d{1,2})?$/, 
   currency: /^(USD|EUR|GBP|JPY|CNY|AUD|CAD)$/,
   swiftCode: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
-  beneficiaryAccount: /^[A-Z0-9]{8,34}$/,
+  beneficiaryAccount: /^\d{8,34}$/,
   beneficiaryName: /^[a-zA-Z\s\-']{2,100}$/,
   
   // Customer fields

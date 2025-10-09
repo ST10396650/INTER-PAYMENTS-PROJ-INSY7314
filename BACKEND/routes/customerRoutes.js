@@ -10,10 +10,11 @@ const {
   logoutCustomer
 } = require('../controllers/customerController');
 
-const{
- createPayment,
- getCustomerTransactions,
- getTransactionById
+const {
+  createPayment,
+  getCustomerTransactions,
+  getTransactionById,
+  getTransactionStats
 } = require('../controllers/paymentController');
 
 const { authenticate, isCustomer } = require('../middleware/auth');
@@ -33,12 +34,13 @@ router.get('/profile', authenticate, isCustomer, getCustomerProfile); //authenti
 //POST /api/customer/logout
 router.post('/logout', authenticate, isCustomer, logoutCustomer); //authenticates, validates customer, logs out customer
 
+//POST /api/customer/payment
+router.post('/payment', authenticate, isCustomer, createPayment); //creating the international payment
 
-router.post('/payment', authenticate, isCustomer,  createPayment);
+//GET /api/customer/transactions
+router.get('/transactions', authenticate, isCustomer, getCustomerTransactions);//getting the users transaction history
 
-router.get('/transactions', authenticate, isCustomer,  getCustomerTransactions);
-
-router.get('/transactions/:id',  authenticate, isCustomer,  getTransactionById);
-
+//GET /api/customer/transactions/:id
+router.get('/transactions/:id', authenticate, isCustomer, getTransactionById);//getting a transaction
 
 module.exports = router; 
