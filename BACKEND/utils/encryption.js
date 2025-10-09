@@ -1,24 +1,32 @@
+require('dotenv').config();
 const crypto = require('crypto'); //we are using this library for AES encryption. It 
 
-
 const algorithm = 'aes-256-gcm'; // this is an encryption algorithm and is used for authentication.
-
-const encryptionKey = process.env.ENCRYPTION_KEY ; 
+//(siwalikm, 2020)
 
 // making sure that the encryption key is 32 char 
 // and converts the string into a binary buffer so that crypto can see it.
 const getKey = () => {
-  const key = process.env.ENCRYPTION_KEY || encryptionKey;
-  return Buffer.from(key.padEnd(32, '0').slice(0, 32));
+  const key = process.env.ENCRYPTION_KEY ;
+    if (!key) throw new Error('ENCRYPTION_KEY not set');
+  
+  // If key is a 64-character hex string, convert it to buffer
+  if (key.length === 64 && /^[0-9a-f]{64}$/i.test(key)) {
+    return Buffer.from(key, 'hex');
+  }
+  
+  // Otherwise, hash it to get 32 bytes
+  return crypto.createHash('sha256').update(String(key)).digest();
 };
 
-
+const testKey = getKey();
+console.log('Encryption key length:', testKey.length, 'bytes'); // Should be 32
 
 const encrypt = (text) => {
   try {
     if (!text) return null; //checks if there is data to encrypt
     
-    const iv = crypto.randomBytes(16); //iv generates random letters and numbers and makes sure that they are different everytime. 
+    const iv = crypto.randomBytes(12); //iv generates random letters and numbers and makes sure that they are different everytime. 
     //creates object and takes the algorithm, key and iv
     const cipher = crypto.createCipheriv(algorithm, getKey(), iv); 
     // combines everything and takes the original text and encrypts it.
@@ -33,7 +41,7 @@ const encrypt = (text) => {
     console.error('Encryption error:', error.message);
     throw new Error('Failed to encrypt data');
   }
-};
+}; //(siwalikm, 2020)
 
 //this method turns the encrypted data into the original data/ 
 const decrypt = (encryptedText) => {
@@ -62,7 +70,7 @@ const decrypt = (encryptedText) => {
     console.error('Decryption error:', error.message);
     throw new Error('Failed to decrypt data');
   }
-};
+}; //(siwalikm, 2020)
 
 //this is for securely hashing passwords so that its stored safely in the db. 
 const hashPassword = async (password) => {
@@ -83,3 +91,10 @@ module.exports = {
   hashPassword,
   comparePassword
 }; //making these functions accessible in other files
+
+
+/*
+References: 
+siwalikm. 2020. AES-256-CBC implementation in nodeJS with built-in Crypto library (Version 1.0) [Source code]. https://gist.github.com/siwalikm/8311cf0a287b98ef67c73c1b03b47154 (Accessed 2 October 2025). 
+
+*/

@@ -54,8 +54,7 @@ const transactionSchema = new mongoose.Schema({
     uppercase: true,
     match: [/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, 'Invalid SWIFT code format']
   },
-  bank_details: {
-    bank_name: {
+   bank_name: {
       type: String,
       required: [true, 'Bank name is required'],
       trim: true
@@ -68,8 +67,7 @@ const transactionSchema = new mongoose.Schema({
       type: String,
       required: [true, 'Bank country is required'],
       trim: true
-    }
-  },
+    },
   status: {
     type: String,
     enum: ['pending', 'verified', 'submitted'],
