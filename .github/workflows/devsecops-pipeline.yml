@@ -136,6 +136,7 @@ jobs:
           path: '.'
           output_path: 'kics-results'
           fail_on: high
+          exclude_paths: '**/node_modules/**,BACKEND/node_modules/**'
 
   # Stage 8: Compliance & Policy Check
   compliance-check:
