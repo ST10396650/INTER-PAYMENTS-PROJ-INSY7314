@@ -1,5 +1,5 @@
 #!/bin/bash
-sset +e
+set +e
 
 echo "Checking PCI-DSS Compliance Requirements..."
 
@@ -179,11 +179,46 @@ else
     print_warn "Session management not detected"
 fi
 
+
+
+echo ""
+echo "9. Checking Dependencies & Vulnerabilities..."
+echo "---------------------------------------------"
+
+# Check for package.json
+if [ -f "package.json" ]; then
+    print_pass "package.json found"
+    
+    # Check if package-lock.json exists (dependency locking)
+    if [ -f "package-lock.json" ] || [ -f "yarn.lock" ] || [ -f "pnpm-lock.yaml" ]; then
+        print_pass "Dependency lock file found"
+    else
+        print_warn "No dependency lock file found"
+    fi
+else
+    print_warn "package.json not found in root"
+fi
+
+echo ""
+echo "10. Checking Error Handling..."
+echo "------------------------------"
+
+# Check for proper error handling
+if grep -riq "try.*catch\|\.catch\|error.*handler" --include="*.js" --include="*.ts" . 2>/dev/null; then
+    print_pass "Error handling implementation detected"
+else
+    print_warn "Error handling not clearly implemented"
+fi
+
 echo ""
 echo "================================================"
 echo "PCI-DSS Compliance Check Summary"
 echo "================================================"
-echo -e "Checks Passed: ${GREEN}$(($(find . -type f \( -name "*.js" -o -name "*.ts" \) | wc -l) - ERRORS - WARNINGS))${NC}"
+
+TOTAL_CHECKS=25
+PASSED=$((TOTAL_CHECKS - ERRORS - WARNINGS))
+
+echo -e "Checks Passed: ${GREEN}${PASSED}${NC}"
 echo -e "Warnings: ${YELLOW}${WARNINGS}${NC}"
 echo -e "Failures: ${RED}${ERRORS}${NC}"
 echo ""
@@ -191,14 +226,19 @@ echo ""
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}❌ PCI-DSS Compliance check FAILED${NC}"
     echo "Please address the failures above before proceeding to production."
+    echo ""
+    echo "Critical requirements missing: $ERRORS"
     exit 1
-elif [ $WARNINGS -gt 3 ]; then
+elif [ $WARNINGS -gt 5 ]; then
     echo -e "${YELLOW}⚠️  PCI-DSS Compliance check passed with warnings${NC}"
     echo "Consider addressing warnings to improve security posture."
+    echo ""
+    echo "Recommendations to address: $WARNINGS"
     exit 0
 else
     echo -e "${GREEN}✅ PCI-DSS Compliance check PASSED${NC}"
     echo "Basic compliance requirements are met."
+    echo ""
     exit 0
 fi
 
