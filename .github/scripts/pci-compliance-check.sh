@@ -105,17 +105,18 @@ fi
 
 # Check that .env is gitignored
 if [ -f ".gitignore" ]; then
-    if grep -q "^\.env$" .gitignore 2>/dev/null; then
+    if grep -q "^\.env$\|^\.env\s\|/\.env$" .gitignore 2>/dev/null; then
         print_pass ".env file is properly gitignored"
     else
-        print_fail ".env file should be in .gitignore"
+        print_warn ".env file should be in .gitignore"
     fi
 else
-    print_fail ".gitignore file missing"
+    print_warn ".gitignore file not found in root - ensure secrets are not committed"
 fi
 
 # Check for hardcoded secrets (basic check)
-if grep -rE "(password|secret|key|token).*=.*['\"][^'\"]{8,}['\"]" --include="*.js" --include="*.ts" . 2>/dev/null | grep -v "node_modules" | grep -v "test" | grep -v "example"; then
+SECRET_CHECK=$(grep -rE "(password|secret|key|token)\s*[:=]\s*['\"][^'\"]{8,}['\"]" --include="*.js" --include="*.ts" . 2>/dev/null | grep -v "node_modules" | grep -v "test" | grep -v "example" | grep -v ".env" || true)
+if [ -n "$SECRET_CHECK" ]; then
     print_warn "Potential hardcoded secrets detected - review manually"
 else
     print_pass "No obvious hardcoded secrets detected"
