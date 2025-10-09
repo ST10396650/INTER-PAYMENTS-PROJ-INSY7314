@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+sset +e
 
 echo "Checking PCI-DSS Compliance Requirements..."
 
@@ -12,6 +12,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Function to print results
+print_pass() {
+    echo -e "${GREEN}✓ PASS${NC}: $1"
+}
+
+print_fail() {
+    echo -e "${RED}✗ FAIL${NC}: $1"
+    ((ERRORS++))
+}
+
+print_warn() {
+    echo -e "${YELLOW}⚠ WARN${NC}: $1"
+    ((WARNINGS++))
+}
 
 echo ""
 echo "2. Checking Authentication & Access Control..."
