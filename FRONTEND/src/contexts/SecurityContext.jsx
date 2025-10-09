@@ -14,11 +14,12 @@ export const useSecurity = () => {
 export const SecurityProvider = ({ children }) => {
     // Input validation patterns using RegEx
     const validationPatterns = {
-        fullName: /^[a-zA-Z\s\-']{2,100}$/,
-        idNumber: /^[A-Z0-9]{8,20}$/,
-        accountNumber: /^[A-Z0-9]{8,34}$/,
+        full_name: /^[a-zA-Z\s\-']{2,100}$/,
+        id_number: /^\d{13}$/,
+        account_number: /^\d{10,12}$/,
         username: /^[a-zA-Z0-9_]{3,20}$/,
-        password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
+  
         swiftCode: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
         amount: /^\d+(\.\d{1,2})?$/,
         currency: /^[A-Z]{3}$/,
@@ -27,8 +28,8 @@ export const SecurityProvider = ({ children }) => {
 
     const errorMessages = {
         fullName: 'Name can only contain letters, spaces, hyphens, and apostrophes (2-100 characters)',
-        idNumber: 'ID number must be 8-20 alphanumeric characters',
-        accountNumber: 'Account number must be 8-34 alphanumeric characters',
+        idNumber: 'ID number must be 13 numbers',
+        accountNumber: 'Account number must be 10 numbers',
         username: 'Username must be 3-20 characters (letters, numbers, underscore)',
         password: 'Password must be at least 8 characters with uppercase, lowercase, number and special character',
         swiftCode: 'Invalid SWIFT code format',
@@ -114,4 +115,5 @@ export const SecurityProvider = ({ children }) => {
             {children}
         </SecurityContext.Provider>
     )
+
 }
