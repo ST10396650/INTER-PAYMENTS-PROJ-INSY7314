@@ -80,6 +80,11 @@ app.get('/', (req, res) => {
 });
 
 
+// API routes
+const customerRoutes = require("./routes/customerRoutes");
+app.use("/api/customer", customerRoutes);
+app.use('/api/employee', require('./routes/employeeRoutes'));
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -112,6 +117,6 @@ app.listen(PORT, () => {
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise Rejection:', err);
-  // Close server & exit process
+  // close server & exit process
   process.exit(1);
 });

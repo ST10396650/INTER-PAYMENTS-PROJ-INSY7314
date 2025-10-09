@@ -1,33 +1,5 @@
 const mongoose = require('mongoose'); //this is the library that helps us to interact with mongodb
-const crypto = require('crypto'); //it is a node.js library used for encryption & hashing.
-
-// Encryption configuration
-const algorithm = 'aes-256-cbc'; //this is an algorithm used for encrypting and decrypting data.
-//generates a random encrytion key
-const encryptionKey = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex').slice(0, 32);
-
-const iv = crypto.randomBytes(16); //this makes sure that the encrypted data is not the same, ehrn encryted again
-
-// Encryption helper functions
-const encrypt = (text) => {
-  //takes the algorithm, encryption key and iv and uses the cipher object in crypto to mix the data  
-  const cipher = crypto.createCipheriv(algorithm, Buffer.from(encryptionKey), iv);
-  let encrypted = cipher.update(text); // here we are using the object and then now it mixes/encryps the data you want to encrypt
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex'); //returns a string to make sure that the data is not readable
-};
-
-//this function now does the opposite of the above method, by breaking it down and reverting it
-//back to the original text
-const decrypt = (text) => {
-  const textParts = text.split(':');
-  const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = crypto.createDecipheriv(algorithm, Buffer.from(encryptionKey), iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-};
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const customerSchema = new mongoose.Schema({
     customer_id: {
@@ -52,14 +24,39 @@ const customerSchema = new mongoose.Schema({
     required: [true, 'ID number is required'],
     unique: true,
     // encrypted
-    set: encrypt
+    set: function(value) {
+      try {
+        // Only encrypt if value is not already encrypted
+        if (value && typeof value === 'string' && !value.includes(':')) {
+          const encrypted = encrypt(value);
+          console.log('Encrypted id_number successfully');
+          return encrypted;
+        }
+        return value;
+      } catch (error) {
+        console.error('Error encrypting id_number:', error);
+        throw new Error('Failed to encrypt ID number');
+      }
+    }
   },
   account_number: {
     type: String,
     required: [true, 'Account number is required'],
     unique: true,
-    
-    set: encrypt
+     set: function(value) {
+      try {
+        // Only encrypt if value is not already encrypted
+        if (value && typeof value === 'string' && !value.includes(':')) {
+          const encrypted = encrypt(value);
+          console.log('Encrypted account_number successfully');
+          return encrypted;
+        }
+        return value;
+      } catch (error) {
+        console.error('Error encrypting account_number:', error);
+        throw new Error('Failed to encrypt account number');
+      }
+    }
   },
   username: {
     type: String,
@@ -81,6 +78,23 @@ const customerSchema = new mongoose.Schema({
     ref: 'Role',
     required: true
   },
+   // these fields are for brute force protection 
+  is_active: {
+    type: Boolean,
+    default: true
+  },
+  is_locked: {
+    type: Boolean,
+    default: false
+  },
+  locked_until: {
+    type: Date,
+    default: null
+  },
+  failed_login_attempts: {
+    type: Number,
+    default: 0
+  },
   last_login: {
     type: Date,
     default: null
@@ -89,11 +103,13 @@ const customerSchema = new mongoose.Schema({
   timestamps: true
 });
 
+//(Patel, 2024)
+
 // makes sure that the system is fast when lookinh for these fields
 customerSchema.index({ username: 1 });
 customerSchema.index({ account_number: 1 });
 customerSchema.index({ role_id: 1 });
-employeeSchema.index({ customer_id: 1 });
+customerSchema.index({ customer_id: 1 });
 
 // decrypting the id number for when it is needed
 customerSchema.methods.getDecryptedIdNumber = function() {
@@ -108,11 +124,21 @@ customerSchema.methods.getDecryptedAccountNumber = function() {
 // this is virtual method for making the account numbers to only show the last four digits 
 // in the ui 
 customerSchema.virtual('masked_account_number').get(function() {
-  const decrypted = decrypt(this.account_number);
-  const lastFour = decrypted.slice(-4);
-  return '****' + lastFour;
+  try {
+    const decrypted = decrypt(this.account_number);
+    const lastFour = decrypted.slice(-4);
+    return '****' + lastFour;
+  } catch (error) {
+    console.error('Error masking account number:', error.message);
+    return '****XXXX';
+  }
 });
 
 const Customer = mongoose.model('Customer', customerSchema); //creating the table
 
 module.exports = Customer; //accessible to all files in project
+
+/*
+References:
+Patel, R. 2024. Building a Secure User Registration and Login API with Express.js ,MongoDB and JWT, 13 March 2024. [Online]. Available at: https://medium.com/@finnkumar6/mastering-user-authentication-building-a-secure-user-schema-with-mongoose-and-bcrypt-539b9394e5d9 [Accessed 2 October 2025].
+*/

@@ -6,7 +6,7 @@ const Employee = require('../models/Employee');
 const connectDB = require('../config/database'); //connect to MongoDB.
 
 //adds and creates the fields and tables 
-const seedDatabase = async () => {
+const populateDatabase = async () => {
   try {
     console.log(' Starting database seeding...\n');
 
@@ -17,7 +17,7 @@ const seedDatabase = async () => {
     console.log('Clearing existing roles and employees...');
     await Role.deleteMany({});
     await Employee.deleteMany({});
-    console.log('✅ Cleared existing data\n');
+    console.log('Cleared existing data\n');
 
     // creating the roles
     console.log('Creating roles...');
@@ -26,7 +26,7 @@ const seedDatabase = async () => {
       role_name: 'customer',
       permissions: ['create_payment', 'view_own_transactions']
     });
-    console.log(`✅ Created role: ${customerRole.role_name}`);
+    console.log(` Created role: ${customerRole.role_name}`);
 
     const employeeRole = await Role.create({
       role_name: 'employee',
@@ -36,7 +36,7 @@ const seedDatabase = async () => {
         'view_all_transactions'
       ]
     });
-    console.log(`✅ Created role: ${employeeRole.role_name}`);
+    console.log(` Created role: ${employeeRole.role_name}`);
 
 
     // creating pre-registered employee
@@ -52,22 +52,22 @@ const seedDatabase = async () => {
       role_id: employeeRole._id,
       is_active: true
     });
-    console.log(`✅ Created employee: ${employee1.employee_name} (${employee1.employee_id})`);
+    console.log(`Created employee: ${employee1.employee_name} (${employee1.employee_id})`);
     console.log(`   Username: ${employee1.username}, Password: Employee123!`);
 
    
-    console.log('\n Database seeding completed successfully!\n');
+    console.log('\n Database populating completed successfully!\n');
     console.log(' Summary:');
     console.log(`   - ${await Role.countDocuments()} roles created`);
     console.log(`   - ${await Employee.countDocuments()} employees created`);
-    console.log('\n⚠️  IMPORTANT: Change default passwords in production!\n');
+    console.log('\nIMPORTANT: Change default passwords in production!\n');
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error seeding database:', error);
+    console.error('Error seeding database:', error);
     process.exit(1);
   }
 };
 
 // executing the functions above 
-seedDatabase();
+populateDatabase();
