@@ -93,10 +93,11 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=INTER-PAYMENTS-PROJ-INSY7314
+            -Dsonar.projectKey=ST10396650_INTER-PAYMENTS-PROJ-INSY7314
             -Dsonar.organization=st10396650
 
       - name: Set up Node.js
