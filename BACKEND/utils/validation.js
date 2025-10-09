@@ -5,9 +5,9 @@
 //this method uses regex to make sure input rules are applied.
 const patterns = {
   // Customer Registration
-  fullName: /^[a-zA-Z\s\-']{2,100}$/,
-  idNumber: /^\d{13}$/,
-  accountNumber: /^\d{10,12}$/,
+  full_name: /^[a-zA-Z\s\-']{2,100}$/,
+  id_number: /^\d{13}$/,
+  account_number: /^\d{10,12}$/,
   username: /^[a-zA-Z0-9_]{3,20}$/,
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
   
@@ -24,7 +24,7 @@ const patterns = {
   // Employee fields
   employeeId: /^EMP[0-9]{4,6}$/,
   
-};
+}; //(Wentz, 2023)
 
 //this method checks every input one by one against the regex patterns above.
 const validate = (input, field) => {
@@ -49,7 +49,7 @@ const validate = (input, field) => {
     isValid,
     error: isValid ? null : `Invalid ${field} format`
   };
-};
+}; //(Wentz, 2023)
 
 
 //checks everything all at once, recieves an array of required fields and data to check.
@@ -132,3 +132,8 @@ module.exports = {
   validateAndSanitize,
   checkPasswordStrength
 }; //makes functions accessible
+
+/*
+References: 
+Wentz, A. 2023. Username and Password Validation Using Regex, 24 June 2023. [Online]. Available at: https://dev.to/fromwentzitcame/username-and-password-validation-using-regex-2175 [Accessed 2 October 2025].
+*/
