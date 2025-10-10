@@ -114,7 +114,7 @@ Database (MongoDB)
 ├── users Collection
 ├── payments Collection
 └── logs Collection
-
+```
 
 ---
 
@@ -189,7 +189,7 @@ international-payments-portal/
 │
 ├── README.md
 └── LICENSE
-
+```
 ---
 
 ## API Endpoints
