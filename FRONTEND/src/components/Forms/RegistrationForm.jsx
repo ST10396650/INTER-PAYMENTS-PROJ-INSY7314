@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { registerCustomer } from '../../services/authService'
-import { sanitizeInput, validateInput, validatePassword } from '../../utils/validation'
-import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'  // React Router for navigation
+import { registerCustomer } from '../../services/authService'  // Backend API call to register customer
+import { sanitizeInput, validateInput, validatePassword } from '../../utils/validation'  // Utility functions for input validation
+import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'  // Icon library for visual components
 
 const RegistrationForm = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate()  // Hook to navigate to different routes
 
     const [formData, setFormData] = useState({
         full_name: '',
@@ -30,9 +30,10 @@ const RegistrationForm = () => {
         password: 'Password does not meet requirements'
     }
 
+    // Handle input changes and validation
     const handleChange = (e) => {
         const { name, value } = e.target
-        const sanitizedValue = sanitizeInput(value)
+        const sanitizedValue = sanitizeInput(value)  // Sanitize user input to prevent XSS
 
         setFormData(prev => ({
             ...prev,
@@ -49,7 +50,7 @@ const RegistrationForm = () => {
 
         // Validate password strength in real-time
         if (name === 'password') {
-            const strength = validatePassword(sanitizedValue)
+            const strength = validatePassword(sanitizedValue)  // Check password strength
             setPasswordStrength(strength)
         }
     }
@@ -60,28 +61,28 @@ const RegistrationForm = () => {
         // Validate full name
         if (!formData.full_name) {
             newErrors.full_name = 'Full name is required'
-        } else if (!validateInput('fullName', formData.full_name)) {
+        } else if (!validateInput('fullName', formData.full_name)) {  // Validate full name with regex
             newErrors.full_name = errorMessages.full_name
         }
 
         // Validate ID number
         if (!formData.id_number) {
             newErrors.id_number = 'ID number is required'
-        } else if (!validateInput('idNumber', formData.id_number)) {
+        } else if (!validateInput('idNumber', formData.id_number)) {  // ID validation (13 digits)
             newErrors.id_number = errorMessages.id_number
         }
 
         // Validate account number
         if (!formData.account_number) {
             newErrors.account_number = 'Account number is required'
-        } else if (!validateInput('accountNumber', formData.account_number)) {
+        } else if (!validateInput('accountNumber', formData.account_number)) {  // Account number validation (10-12 digits)
             newErrors.account_number = errorMessages.account_number
         }
 
         // Validate username
         if (!formData.username) {
             newErrors.username = 'Username is required'
-        } else if (!validateInput('username', formData.username)) {
+        } else if (!validateInput('username', formData.username)) {  // Username validation (3-20 characters, letters, numbers, underscores)
             newErrors.username = errorMessages.username
         }
 
@@ -89,7 +90,7 @@ const RegistrationForm = () => {
         if (!formData.password) {
             newErrors.password = 'Password is required'
         } else {
-            const currentPasswordStrength = validatePassword(formData.password)
+            const currentPasswordStrength = validatePassword(formData.password)  // Password strength check
             if (!currentPasswordStrength.isValid) {
                 newErrors.password = currentPasswordStrength.message
             }
@@ -99,52 +100,50 @@ const RegistrationForm = () => {
         // Validate confirm password
         if (!formData.confirm_password) {
             newErrors.confirm_password = 'Please confirm your password'
-        } else if (formData.password !== formData.confirm_password) {
+        } else if (formData.password !== formData.confirm_password) {  // Check if passwords match
             newErrors.confirm_password = 'Passwords do not match'
         }
 
         setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+        return Object.keys(newErrors).length === 0  // Return true if there are no errors
     }
 
-   const handleSubmit = async (e) => {
-    e.preventDefault()
+    const handleSubmit = async (e) => {
+        e.preventDefault()
 
-    if (!validateForm()) {
-        return
+        if (!validateForm()) {
+            return  // Prevent submission if form is invalid
+        }
+
+        setIsSubmitting(true)
+
+        try {
+            // Call the backend API
+            await registerCustomer({
+                fullName: formData.full_name,
+                idNumber: formData.id_number,
+                accountNumber: formData.account_number,
+                username: formData.username,
+                password: formData.password
+            })
+
+            // Registration successful
+            navigate('/login', {
+                state: {
+                    message: 'Registration successful! Please login to continue.'  // Success message passed as state
+                }
+            })
+        } catch (error) {
+            console.error('Registration error:', error)  // Log error for debugging
+            
+            // Show error from backend
+            setErrors({ 
+                submit: error.message || 'Registration failed. Please try again.' 
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
     }
-
-    setIsSubmitting(true)
-
-    try {
-        // Call the backend API
-        await registerCustomer({
-            fullName: formData.full_name,
-            idNumber: formData.id_number,
-            accountNumber: formData.account_number,
-            username: formData.username,
-            password: formData.password
-        })
-
-        // If we get here, registration was successful
-        // Navigate to login page with success message
-        navigate('/login', {
-            state: {
-                message: 'Registration successful! Please login to continue.'
-            }
-        })
-    } catch (error) {
-        // Log the full error for debugging
-        console.error('Registration error:', error)
-        
-        // Show error from backend
-        setErrors({ 
-            submit: error.message || 'Registration failed. Please try again.' 
-        })
-    } finally {
-        setIsSubmitting(false)
-    }
-}
 
     return (
         <div style={styles.container}>
@@ -163,7 +162,7 @@ const RegistrationForm = () => {
                             onChange={handleChange}
                             style={{
                                 ...styles.input,
-                                ...(errors.full_name && styles.inputError)
+                                ...(errors.full_name && styles.inputError)  // Style error input
                             }}
                             required
                             maxLength={100}
@@ -182,10 +181,10 @@ const RegistrationForm = () => {
                             onChange={handleChange}
                             style={{
                                 ...styles.input,
-                                ...(errors.id_number && styles.inputError)
+                                ...(errors.id_number && styles.inputError)  // Style error input
                             }}
                             inputMode="numeric"
-                            pattern="\d*"
+                            pattern="\d*"  // Allow only digits
                             required
                             maxLength={13}
                         />
@@ -203,10 +202,10 @@ const RegistrationForm = () => {
                             onChange={handleChange}
                             style={{
                                 ...styles.input,
-                                ...(errors.account_number && styles.inputError)
+                                ...(errors.account_number && styles.inputError)  // Style error input
                             }}
                             inputMode="numeric"
-                            pattern="\d*"
+                            pattern="\d*"  // Allow only digits
                             required
                             maxLength={16}
                         />
@@ -224,7 +223,7 @@ const RegistrationForm = () => {
                             onChange={handleChange}
                             style={{
                                 ...styles.input,
-                                ...(errors.username && styles.inputError)
+                                ...(errors.username && styles.inputError)  // Style error input
                             }}
                             required
                             maxLength={20}
@@ -245,13 +244,13 @@ const RegistrationForm = () => {
                                 style={{
                                     ...styles.input,
                                     ...styles.passwordInput,
-                                    ...(errors.password && styles.inputError)
+                                    ...(errors.password && styles.inputError)  // Style error input
                                 }}
                                 required
                             />
                             <button
                                 type="button"
-                                onClick={() => setShowPassword(!showPassword)}
+                                onClick={() => setShowPassword(!showPassword)}  // Toggle password visibility
                                 style={styles.passwordToggle}
                             >
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -291,7 +290,7 @@ const RegistrationForm = () => {
                             onChange={handleChange}
                             style={{
                                 ...styles.input,
-                                ...(errors.confirm_password && styles.inputError)
+                                ...(errors.confirm_password && styles.inputError)  // Style error input
                             }}
                             required
                         />
@@ -308,10 +307,10 @@ const RegistrationForm = () => {
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting}  // Disable button during submission
                         style={{
                             ...styles.submitButton,
-                            ...(isSubmitting && styles.submitButtonDisabled)
+                            ...(isSubmitting && styles.submitButtonDisabled)  // Style for disabled button
                         }}
                     >
                         {isSubmitting ? 'Registering...' : 'Register'}
@@ -329,6 +328,7 @@ const RegistrationForm = () => {
 }
 
 const styles = {
+    // Styling
     container: {
         display: 'flex',
         justifyContent: 'center',
