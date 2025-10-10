@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext'
-import {Link, useNavigate} from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -19,7 +19,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="nav-brand">
         <Link to={user.role === 'customer' ? '/customer/dashboard' : '/employee/dashboard'}>
-          International Payments
+          INTER-PAY
         </Link>
       </div>
 
