@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/CustomerDashboard'
 import MakePayment from './pages/MakePayment'
 import TransactionHistory from './pages/TransactionHistory'
+import Profile from './pages/Profile'
 import Navbar from './components/Navbar'
 import Footer from './components/Layout/Footer'
 import { AuthProvider } from './contexts/AuthContext'
@@ -27,7 +28,8 @@ function App() {
                   <Route path="/login" element={<Login />} /> 
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/make-payment" element={<MakePayment />} />
-                  <Route path="//transaction-history" element={<TransactionHistory />} />
+                  <Route path="/transaction-history" element={<TransactionHistory />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Routes>
               </main>
               <Footer />
