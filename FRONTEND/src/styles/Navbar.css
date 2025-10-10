@@ -5,12 +5,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.nav-brand a {
-  color: white;
-  text-decoration: none;
+.nav-brand {
+  flex-grow: 1; /* Center the brand name */
+  display: flex;
+  justify-content: center;
   font-size: 1.5rem;
   font-weight: bold;
 }
@@ -19,6 +20,7 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  justify-content: flex-end; /* Align the links to the right */
 }
 
 .nav-links a {
@@ -30,13 +32,13 @@
 }
 
 .nav-links a:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .logout-btn {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
@@ -44,7 +46,7 @@
 }
 
 .logout-btn:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @media (max-width: 768px) {
