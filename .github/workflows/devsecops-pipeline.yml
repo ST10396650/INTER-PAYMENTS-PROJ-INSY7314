@@ -11,7 +11,7 @@ env:
   DOCKER_IMAGE: inter-pay-website
 
 jobs:
-  # Stage 1: Code Quality & Secret Scanning
+  #Code Quality & Secret Scanning
   code-security-scan:
     name: Security Scanning
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
             p/owasp-top-ten
             p/pci-dss
 
-  # Stage 2: Dependency Scanning
+  # Dependency Scanning
   dependency-scan:
     name: Dependency & License Check
     runs-on: ubuntu-latest
@@ -80,7 +80,7 @@ jobs:
           name: dependency-check-report
           path: reports/
 
-  # Stage 3: Static Application Security Testing (SAST)
+  # Static Application Security Testing (SAST)
   sast-scan:
     name: SAST Analysis
     runs-on: ubuntu-latest
@@ -93,11 +93,10 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=ST10396650_INTER-PAYMENTS-PROJ-INSY7314
+            -Dsonar.projectKey=INTER-PAYMENTS-PROJ-INSY7314
             -Dsonar.organization=st10396650
 
       - name: Set up Node.js
@@ -112,10 +111,85 @@ jobs:
         run: npm test -- --coverage
         continue-on-error: true
 
+  # Build & Container Security
+  build-and-container-scan:
+    name: Build & Container Security
+    runs-on: ubuntu-latest
+    needs: [code-security-scan, dependency-scan, sast-scan]
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.DOCKER_IMAGE }}:${{ github.sha }} .
 
-  # Stage 7: Infrastructure as Code Security
+      - name: Trivy Container Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Anchore Container Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          fail-build: true
+          severity-cutoff: high
+
+  #Unit & Integration Tests
+  test:
+    name: Testing Suite
+    runs-on: ubuntu-latest
+    needs: build-and-container-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --coverage
+
+      - name: Run security tests
+        run: npm run test:security
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/coverage-final.json
+
+  #Dynamic Application Security Testing (DAST)
+  dast-scan:
+    name: DAST - ZAP Scan
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+
+  #Infrastructure as Code Security
   iac-scan:
     name: IaC Security Scan
     runs-on: ubuntu-latest
@@ -136,9 +210,8 @@ jobs:
           path: '.'
           output_path: 'kics-results'
           fail_on: high
-          exclude_paths: '**/node_modules/**,BACKEND/node_modules/**'
 
-  # Stage 8: Compliance & Policy Check
+  #Compliance & Policy Check
   compliance-check:
     name: PCI-DSS Compliance Check
     runs-on: ubuntu-latest
@@ -155,3 +228,39 @@ jobs:
         uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
+
+  #Deploy (Conditional)
+  deploy:
+    name: Deploy to Environment
+    runs-on: ubuntu-latest
+    needs: [test, dast-scan, compliance-check]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+          # Add your deployment steps here
+
+      - name: Security notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+         payload: |
+          {
+            "text": "Deployment Status: ${{ job.status }}",
+            "blocks": [
+             {
+               "type": "section",
+               "text": {
+                "type": "mrkdwn",
+                "text": "*Production deployment completed with security checks*\nStatus: ${{ job.status }}\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}"
+               }
+            }
+           ]
+           }
+        env:
+         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
