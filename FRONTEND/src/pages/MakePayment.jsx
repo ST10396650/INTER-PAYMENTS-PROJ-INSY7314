@@ -1,178 +1,238 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; 
+// For programmatic navigation after payment (React Router, 2025)
+import { useNavigate } from 'react-router-dom'; 
+// Custom authentication context for accessing user token 
+import { useAuth } from '../contexts/AuthContext';  
 
+
+// Functional component for making payments
 export default function MakePayment() {
-  // State to hold form input values
-  const [form, setForm] = useState({
-    amount: '',
-    currency: 'USD',
-    provider: 'SWIFT',
-    beneficiary_account_number: '',
-    beneficiary_name: '',
-    swift_code: '',
-    bank_name: '',
-    bank_address: '',
-    bank_country: ''
-  });
+    const { token } = useAuth();  
+    const navigate = useNavigate(); 
 
-  // State to hold validation errors for each field and the other hold success message after successful submission
-  const [errors, setErrors] = useState({});
-  const [success, setSuccess] = useState('');
+    // Form state to store all input values
+    const [form, setForm] = useState({
+        amount: '',
+        currency: 'USD',
+        provider: 'SWIFT',
+        beneficiary_account_number: '',
+        beneficiary_name: '',
+        swift_code: '',
+        bank_name: '',
+        bank_address: '',
+        bank_country: ''
+    });
 
-  // Regex patterns matching backend validation rules
-  const regex = {
-    amount: /^\d+(\.\d{1,2})?$/, // Amount can have max 2 decimal places
-    accountNumber: /^[A-Z0-9]{8,34}$/, // Account number: uppercase letters & numbers, 8–34 chars
-    beneficiaryName: /^[a-zA-Z\s\-']{2,100}$/, // Beneficiary name: letters, spaces, hyphen, apostrophe
-    swiftCode: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/ // SWIFT code format
-  };
+    // State for handling validation errors and success messages
+    const [errors, setErrors] = useState({});
+    const [success, setSuccess] = useState('');
 
-  // Handle input changes and update form state
-  const handleChange = (e) => {
-    // Automatically convert input values to uppercase where applicable
-    setForm({ ...form, [e.target.name]: e.target.value.toUpperCase() });
-  };
+    // Regular expressions for input validation
+    const regex = {
+        amount: /^\d+(\.\d{1,2})?$/,  
+        accountNumber: /^[A-Z0-9]{8,34}$/, 
+        beneficiaryName: /^[a-zA-Z\s\-']{2,100}$/, 
+        swiftCode: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/
+    };
 
-  // Validate form inputs against regex and required fields
-  const validate = () => {
-    const newErrors = {};
+    // Handle input changes and update form state
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm({ ...form, [name]: value });
+    };
 
-    if (!regex.amount.test(form.amount)) newErrors.amount = 'Invalid amount (max 2 decimals)';
-    if (!regex.accountNumber.test(form.beneficiary_account_number)) newErrors.beneficiary_account_number = 'Invalid account number';
-    if (!regex.beneficiaryName.test(form.beneficiary_name)) newErrors.beneficiary_name = 'Invalid beneficiary name';
-    if (!regex.swiftCode.test(form.swift_code)) newErrors.swift_code = 'Invalid SWIFT code';
-    if (!form.bank_name) newErrors.bank_name = 'Bank name is required';
-    if (!form.bank_country) newErrors.bank_country = 'Bank country is required';
+    // Validate form fields and return whether valid
+    const validate = () => {
+        const newErrors = {};
+        if (!regex.amount.test(form.amount)) newErrors.amount = 'Invalid amount (max 2 decimals)';
+        if (!regex.accountNumber.test(form.beneficiary_account_number)) newErrors.beneficiary_account_number = 'Invalid account number';
+        if (!regex.beneficiaryName.test(form.beneficiary_name)) newErrors.beneficiary_name = 'Invalid beneficiary name';
+        if (!regex.swiftCode.test(form.swift_code)) newErrors.swift_code = 'Invalid SWIFT code';
+        if (!form.bank_name) newErrors.bank_name = 'Bank name is required';
+        if (!form.bank_country) newErrors.bank_country = 'Bank country is required';
+        setErrors(newErrors);  // Set errors state
+        return Object.keys(newErrors).length === 0;  // Return true if no errors
+    };
 
-    // Update errors state
-    setErrors(newErrors);
-    // Return true if no errors, false otherwise
-    return Object.keys(newErrors).length === 0;
-  };
+    // Handle form submission
+    const handleSubmit = async (e) => {
+        e.preventDefault();  // Prevent default form submission behavior
+        setSuccess('');  // Reset success message
+        if (!validate()) return;  // Stop submission if validation fails
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent default form submission behavior
-    setSuccess(''); // Reset previous success messages
+        try {
+            if (!token) {
+                setErrors({ submit: 'No authentication token found. Please login again.' });
+                return;
+            }
 
-    if (!validate()) return; // Stop if validation fails
+            // Send POST request to backend API with payment data
+            const response = await fetch('http://localhost:5000/api/customer/payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(form)
+            });
 
-    try {
-      // Send form data to backend API (Note I used a dummy directory (was for the morkApi)
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
+            if (response.ok) {
+                // Payment success
+                setSuccess('Payment submitted successfully!');
+                setForm({  // Reset form after successful submission
+                    amount: '',
+                    currency: 'USD',
+                    provider: 'SWIFT',
+                    beneficiary_account_number: '',
+                    beneficiary_name: '',
+                    swift_code: '',
+                    bank_name: '',
+                    bank_address: '',
+                    bank_country: ''
+                });
+                setTimeout(() => navigate('/dashboard'), 1200);
+            } else {
+                const data = await response.json();
+                setErrors({ submit: data.message || 'Payment failed' });
+            }
+        } catch (err) {
+            setErrors({ submit: err.message });  // Handle network or unexpected errors
+        }
+    };
 
-      if (response.ok) {
-        // If successful, show success message and reset form
-        setSuccess('Payment submitted successfully!');
-        setForm({
-          amount: '',
-          currency: 'USD',
-          provider: 'SWIFT',
-          beneficiary_account_number: '',
-          beneficiary_name: '',
-          swift_code: '',
-          bank_name: '',
-          bank_address: '',
-          bank_country: ''
-        });
-      } else {
-        // If API returns error, show error message
-        const data = await response.json();
-        setErrors({ submit: data.message || 'Payment failed' });
-      }
-    } catch (err) {
-      // This is to handle network or unexpected errors
-      setErrors({ submit: err.message });
-    }
-  };
+    return (
+        <div className="make-payment-wrapper">
+            <div className="make-payment-container">
+                <h2>Make a Payment</h2>
 
-  return (
-    <div className="p-6 max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Make a Payment</h2>
+                {/* Display success or error messages */}
+                {success && <div className="success-message">{success}</div>}
+                {errors.submit && <div className="error-message">{errors.submit}</div>}
 
-      {/* Display success message */}
-      {success && <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4">{success}</div>}
-      {/* Display submission error message */}
-      {errors.submit && <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">{errors.submit}</div>}
+                <form onSubmit={handleSubmit} className="make-payment-form">
+                    {/* Amount and Currency Inputs */}
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>Amount *</label>
+                            <input
+                                type="text"
+                                name="amount"
+                                value={form.amount}
+                                onChange={handleChange}
+                                placeholder="100.00"
+                                className={errors.amount ? 'error' : ''}
+                            />
+                            {errors.amount && <span className="error-text">{errors.amount}</span>}
+                        </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
-        {/* Amount input */}
-        <div>
-          <label className="block font-semibold">Amount</label>
-          <input
-            type="text"
-            name="amount"
-            value={form.amount}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            placeholder="100.00"
-          />
-          {errors.amount && <p className="text-red-600 text-sm">{errors.amount}</p>}
+                        <div className="form-group">
+                            <label>Currency *</label>
+                            <select name="currency" value={form.currency} onChange={handleChange}>
+                                {['USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'CAD'].map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Payment Provider */}
+                    <div className="form-group">
+                        <label>Provider *</label>
+                        <select name="provider" value={form.provider} onChange={handleChange}>
+                            <option value="SWIFT">SWIFT</option>
+                        </select>
+                    </div>
+
+                    {/* Beneficiary Details */}
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>Beneficiary Name *</label>
+                            <input
+                                type="text"
+                                name="beneficiary_name"
+                                value={form.beneficiary_name}
+                                onChange={handleChange}
+                                className={errors.beneficiary_name ? 'error' : ''}
+                            />
+                            {errors.beneficiary_name && <span className="error-text">{errors.beneficiary_name}</span>}
+                        </div>
+
+                        <div className="form-group">
+                            <label>Account Number *</label>
+                            <input
+                                type="text"
+                                name="beneficiary_account_number"
+                                value={form.beneficiary_account_number}
+                                onChange={handleChange}
+                                className={errors.beneficiary_account_number ? 'error' : ''}
+                            />
+                            {errors.beneficiary_account_number && <span className="error-text">{errors.beneficiary_account_number}</span>}
+                        </div>
+                    </div>
+
+                    {/* SWIFT Code */}
+                    <div className="form-group">
+                        <label>SWIFT Code *</label>
+                        <input
+                            type="text"
+                            name="swift_code"
+                            value={form.swift_code}
+                            onChange={handleChange}
+                            className={errors.swift_code ? 'error' : ''}
+                        />
+                        {errors.swift_code && <span className="error-text">{errors.swift_code}</span>}
+                    </div>
+
+                    {/* Bank Name and Country */}
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>Bank Name *</label>
+                            <input
+                                type="text"
+                                name="bank_name"
+                                value={form.bank_name}
+                                onChange={handleChange}
+                                className={errors.bank_name ? 'error' : ''}
+                            />
+                            {errors.bank_name && <span className="error-text">{errors.bank_name}</span>}
+                        </div>
+
+                        <div className="form-group">
+                            <label>Bank Country *</label>
+                            <input
+                                type="text"
+                                name="bank_country"
+                                value={form.bank_country}
+                                onChange={handleChange}
+                                className={errors.bank_country ? 'error' : ''}
+                            />
+                            {errors.bank_country && <span className="error-text">{errors.bank_country}</span>}
+                        </div>
+                    </div>
+
+                    {/* Optional Bank Address */}
+                    <div className="form-group">
+                        <label>Bank Address</label>
+                        <input
+                            type="text"
+                            name="bank_address"
+                            value={form.bank_address}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    {/* Submit Button */}
+                    <button type="submit" className="submit-btn">Pay Now</button>
+                </form>
+            </div>
         </div>
-
-        {/* Currency selection */}
-        <div>
-          <label className="block font-semibold">Currency</label>
-          <select name="currency" value={form.currency} onChange={handleChange} className="w-full border px-3 py-2 rounded">
-            {['USD','EUR','GBP','AUD','JPY','CNY','CAD'].map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Provider selection */}
-        <div>
-          <label className="block font-semibold">Provider</label>
-          <select name="provider" value={form.provider} onChange={handleChange} className="w-full border px-3 py-2 rounded">
-            <option value="SWIFT">SWIFT</option>
-          </select>
-        </div>
-
-        {/* Beneficiary Name input */}
-        <div>
-          <label className="block font-semibold">Beneficiary Name</label>
-          <input type="text" name="beneficiary_name" value={form.beneficiary_name} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-          {errors.beneficiary_name && <p className="text-red-600 text-sm">{errors.beneficiary_name}</p>}
-        </div>
-
-        {/* Beneficiary Account Number input */}
-        <div>
-          <label className="block font-semibold">Beneficiary Account Number</label>
-          <input type="text" name="beneficiary_account_number" value={form.beneficiary_account_number} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-          {errors.beneficiary_account_number && <p className="text-red-600 text-sm">{errors.beneficiary_account_number}</p>}
-        </div>
-
-        {/* SWIFT Code input */}
-        <div>
-          <label className="block font-semibold">SWIFT Code</label>
-          <input type="text" name="swift_code" value={form.swift_code} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-          {errors.swift_code && <p className="text-red-600 text-sm">{errors.swift_code}</p>}
-        </div>
-
-        {/* Bank Name input */}
-        <div>
-          <label className="block font-semibold">Bank Name</label>
-          <input type="text" name="bank_name" value={form.bank_name} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-          {errors.bank_name && <p className="text-red-600 text-sm">{errors.bank_name}</p>}
-        </div>
-
-        {/* Bank Address input */}
-        <div>
-          <label className="block font-semibold">Bank Address</label>
-          <input type="text" name="bank_address" value={form.bank_address} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-        </div>
-
-        {/* Bank Country input */}
-        <div>
-          <label className="block font-semibold">Bank Country</label>
-          <input type="text" name="bank_country" value={form.bank_country} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-          {errors.bank_country && <p className="text-red-600 text-sm">{errors.bank_country}</p>}
-        </div>
-
-        {/* Submit button */}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Pay Now</button>
-      </form>
-    </div>
-  );
+    );
 }
+
+/* 
+------------------------------------------------------------
+References
+------------------------------------------------------------
+React. 2025. React documentation. Meta Platforms, Inc, n.d. [Online]. Available at: https://react.dev [Accessed 8 October 2025]
+React Router. 2025. React Router DOM documentation, n.d. [Online]. Available at: https://reactrouter.com/en/main [Accessed 7 October 2025]
+*/

@@ -1,95 +1,172 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'; // React core library and hooks (React, 2025)
+import { Helmet } from 'react-helmet-async'; // Helmet for dynamic document head (react-helmet-async, 2024)
+import { useAuth } from '../contexts/AuthContext'; 
+import { paymentService } from '../services/api';
+
 
 export default function TransactionHistory() {
-  // State to store transactions fetched from backend, loading status while fetching data and hold any error messages during fetch
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+    // Access authentication token from AuthContext (React Context API, 2024)
+    const { token } = useAuth();
 
-  // Fetch transactions from backend when component mounts
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        // Call the API endpoint to fetch transactions
-        const response = await fetch('/api/transactions'); // This will be replaced with our api directory
-        if (!response.ok) {
-          throw new Error('Failed to fetch transactions');
+    // State variables for managing transactions, loading state, and errors
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    // useEffect runs when the component mounts or when token changes (React, 2025)
+    useEffect(() => {
+        if (token) {
+            // Fetch transactions only if user is authenticated
+            fetchTransactions();
+        } else {
+            // Show error message if user is not logged in
+            setError('Please login to view transactions');
+            setLoading(false);
         }
-        const data = await response.json();
-        // Update state with fetched transactions
-        setTransactions(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        // Stop loading indicator once fetch is complete
-        setLoading(false);
-      }
+    }, [token]);
+
+    // Function to fetch transactions from the backend API
+    const fetchTransactions = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            // Fetch transactions via paymentService API call (REST API concepts, 2025)
+            const response = await paymentService.getTransactions();
+
+            // Extract transaction data safely
+            const transactionsData = response.data || response.transactions || response;
+
+            // Ensure transactionsData is an array before setting state
+            setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
+        } catch (err) {
+            // Handle and log any API or network errors
+            console.error('❌ Error fetching transactions:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to fetch transactions');
+        } finally {
+            // Stop loading spinner once data or error is handled
+            setLoading(false);
+        }
     };
 
-    fetchTransactions();
-  }, []); // Empty dependency array ensures this runs once on mount
+    // Function to return dynamic CSS classes for different transaction statuses (CSS styling, 2023)
+    const getStatusClass = (status) => {
+        switch (status?.toLowerCase()) {
+            case 'pending': return 'status status-pending';
+            case 'verified': return 'status status-verified';
+            case 'completed': return 'status status-completed';
+            case 'submitted': return 'status status-submitted';
+            case 'failed': return 'status status-failed';
+            default: return 'status status-default';
+        }
+    };
 
-  // Function to return Tailwind CSS color class based on transaction status (Im not sure if it is necessary but I will remove it if its not)
-  const statusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'text-yellow-600'; // Pending = yellow
-      case 'verified': return 'text-green-600'; // Verified = green
-      case 'submitted': return 'text-blue-600'; // Submitted = blue
-      default: return ''; // Default = no color
-    }
-  };
+    return (
+        <>
+            {/* Helmet dynamically sets the page title in the browser tab (react-helmet-async, 2024) */}
+            <Helmet>
+                <title>Transaction History - International Payments Portal</title>
+            </Helmet>
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
+            <div className="history-container">
+                {/* Header Section */}
+                <div className="header">
+                    <h2>Transaction History</h2>
+                    <p>View all your payment transactions</p>
+                </div>
 
-      {/* Show loading message while fetching transactions */}
-      {loading && <p>Loading transactions...</p>}
+                {/* Loading State Section */}
+                {loading && (
+                    <div className="loading-section">
+                        <div className="loader"></div>
+                        <p>Loading transactions...</p>
+                    </div>
+                )}
 
-      {/* Show error message if fetch fails */}
-      {error && <p className="text-red-600">{error}</p>}
+                {/* Error Message Section */}
+                {error && (
+                    <div className="error-message">
+                        <strong>Error:</strong> {error}
+                    </div>
+                )}
 
-      {/* Show message if no transactions exist */}
-      {!loading && !error && transactions.length === 0 && (
-        <p>No transactions found.</p>
-      )}
+                {/* No Transactions Found Section */}
+                {!loading && !error && transactions.length === 0 && (
+                    <div className="no-transactions">
+                        <p>No transactions found.</p>
+                        {/* Button to redirect users to make a payment */}
+                        <a href="/make-payment" className="make-payment-btn">
+                            Make Your First Payment
+                        </a>
+                    </div>
+                )}
 
-      {/* Render transaction table if transactions exist */}
-      {!loading && !error && transactions.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded shadow">
-            <thead>
-              <tr className="bg-gray-100 text-left">
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">Amount</th>
-                <th className="px-4 py-2">Currency</th>
-                <th className="px-4 py-2">Beneficiary Name</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Map through transactions and display each in a table row */}
-              {transactions.map((tx) => (
-                <tr key={tx._id} className="border-t">
-                  {/* Format date to local string */}
-                  <td className="px-4 py-2">{new Date(tx.createdAt).toLocaleString()}</td>
-                  {/* Display amount with 2 decimal places */}
-                  <td className="px-4 py-2">{tx.amount.toFixed(2)}</td>
-                  {/* Display currency */}
-                  <td className="px-4 py-2">{tx.currency}</td>
-                  {/* Display beneficiary name */}
-                  <td className="px-4 py-2">{tx.beneficiary_name}</td>
-                  {/* Display status with color based on status */}
-                  <td className={`px-4 py-2 font-semibold ${statusColor(tx.status)}`}>
-                    {/* Capitalize first letter of status */}
-                    {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
+                {/* Transactions Table Section */}
+                {!loading && !error && transactions.length > 0 && (
+                    <div className="table-container">
+                        <table className="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Currency</th>
+                                    <th>Beneficiary</th>
+                                    <th>Provider</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* Render each transaction as a table row */}
+                                {transactions.map((tx, index) => (
+                                    <tr key={tx._id || `tx-${index}`}>
+                                        {/* Transaction Date */}
+                                        <td>{new Date(tx.createdAt || Date.now()).toLocaleString()}</td>
+
+                                        {/* Transaction Amount */}
+                                        <td><strong>{parseFloat(tx.amount || 0).toFixed(2)}</strong></td>
+
+                                        {/* Transaction Currency */}
+                                        <td>{tx.currency || 'USD'}</td>
+
+                                        {/* Beneficiary Details */}
+                                        <td>
+                                            <div>{tx.beneficiary_name || 'Unknown'}</div>
+                                            <small>{tx.beneficiary_account_number || ''}</small>
+                                        </td>
+
+                                        {/* Payment Provider */}
+                                        <td>{tx.provider || 'SWIFT'}</td>
+
+                                        {/* Transaction Status with Dynamic Class */}
+                                        <td>
+                                            <span className={getStatusClass(tx.status)}>
+                                                {tx.status ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1) : 'Pending'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Summary Section showing number of transactions */}
+                        <div className="summary">
+                            Showing <strong>{transactions.length}</strong> transaction(s)
+                        </div>
+                    </div>
+                )}
+            </div>
+        </>
+    );
 }
+
+
+/* 
+------------------------------------------------------------
+References
+------------------------------------------------------------
+React. 2025. React documentation. Meta Platforms, Inc, n.d. [Online]. Available at: https://react.dev [Accessed 8 October 2025]
+React Context API. 2024. Context API documentation. Meta Platforms, Inc, n.d. [Online]. Available at: https://react.dev/learn/passing-data-deeply [Accessed 8 October 2025]
+react-helmet-async. 2024. React Helmet Async GitHub repository, n.d. [Online]. Available at: https://github.com/staylor/react-helmet-async [Accessed 8 October 2025]
+REST API concepts. 2025. REST API tutorial, n.d. [Online]. Available at: https://restfulapi.net/ [Accessed 8 October 2025]
+CSS Styling. 2023. CSS Basics. W3Schools, n.d. [Online]. Available at: https://www.w3schools.com/css/ [Accessed 8 October 2025]
+*/

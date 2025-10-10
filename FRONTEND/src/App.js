@@ -1,65 +1,57 @@
-import React from 'react';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import './App.css'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/CustomerDashboard'
+import MakePayment from './pages/MakePayment'
+import TransactionHistory from './pages/TransactionHistory'
+import Profile from './pages/Profile'
+import Navbar from './components/Navbar'
+import Footer from './components/Layout/Footer'
+import { AuthProvider } from './contexts/AuthContext'
+import { SecurityProvider } from './contexts/SecurityContext'
+import { HelmetProvider } from 'react-helmet-async'
 
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  
+  const showNavbarRoutes = ['/dashboard', '/make-payment', '/transaction-history', '/profile'];
+  const shouldShowNavbar = showNavbarRoutes.includes(location.pathname);
+
   return (
-    <Router>
-      <AuthProvider>
-        <PaymentProvider>
-          <div className="App">
-            <Navbar />
-            <main className="main-content">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route
-                  path="/customer/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['customer']}>
-                      <CustomerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/employee/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['employee']}>
-                      <EmployeeDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/make-payment"
-                  element={
-                    <ProtectedRoute allowedRoles={['customer']}>
-                      <MakePayment />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/transactions"
-                  element={
-                    <ProtectedRoute allowedRoles={['customer', 'employee']}>
-                      <TransactionHistory />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </main>
-          </div>
-        </PaymentProvider>
-      </AuthProvider>
-    </Router>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {shouldShowNavbar && <Navbar />}
+      <main className="flex-grow container mx-auto px-4 py-6">
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} /> 
+          
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/make-payment" element={<MakePayment />} />
+          <Route path="/transaction-history" element={<TransactionHistory />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
   );
 }
 
-export default App;
+function App() {
+  return (
+    <AuthProvider>
+      <SecurityProvider>
+        <HelmetProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </HelmetProvider>
+      </SecurityProvider>
+    </AuthProvider>
+  )
+}
+
+export default App
