@@ -11,6 +11,15 @@ const app = express();
 // connect to Database
 connectDB();
 
+app.use(cors({
+    origin: 'http://localhost:3000', // Your frontend URL
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
+
 // this sets important HTTP security headers
 app.use(helmet());
 app.use(helmet.hsts({ //forces HTTPS
@@ -30,14 +39,17 @@ app.use(helmet.contentSecurityPolicy({ //prevents XSS attacks
 
 // CORS Configuration, for establishing communication of frontend with backend.
 //this makes sure that the frontend requests are allowed.
-const corsOptions = {
+/*const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
-};
-app.use(cors(corsOptions));
+};*/
+
+
+
+
 
 // using rate limiting to protect against bots, spam, and hackers.
 const limiter = rateLimit({
