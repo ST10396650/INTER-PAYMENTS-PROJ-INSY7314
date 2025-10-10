@@ -16,6 +16,7 @@ A separate **Employee Portal** is planned for future development to handle verif
 ## Table of Contents
 
 - [Overview](#overview)
+- [Implemented Features](#implemented-features)
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Architecture Overview](#architecture-overview)
@@ -23,10 +24,13 @@ A separate **Employee Portal** is planned for future development to handle verif
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
 - [Frontend Integration](#frontend-integration)
-- [Security Implementations](#security-implementations)
-- [Future Enhancements - Employee Portal](#future-enhancements---employee-portal)
+- [Security Implementation](#security-implementation)
+  - [Frontend Security](#frontend-security)
+  - [Backend Security](#backend-security)
+  - [DDoS & Infrastructure / Additional Protections](#ddos--infrastructure--additional-protections)
+- [GitHub Workflows (DevSecOps)](#github-workflows-devsecops)
 - [License](#license)
-- [Contact](#contact)
+- [Additional Resources](#additional-resources)
 
 ---
 
@@ -37,6 +41,7 @@ It enables customers to initiate, manage, and track payment transactions.
 
 The project integrates a **Node.js + Express backend** with a **React.js frontend**, ensuring an efficient and responsive experience.  
 The backend includes strong encryption, JWT authentication, and Mongoose-based data management.
+
 
 ### Key Highlights
 
@@ -58,7 +63,21 @@ The backend includes strong encryption, JWT authentication, and Mongoose-based d
 
 ### Employee Features (To be implemented)
 - **Employee Authentication** — Secure login for employees  
-- **Transaction Review** — Review and verify pending transactions    
+- **Transaction Review** — Review and verify pending transactions
+
+
+## Implemented Features
+
+- Customer registration and login (JWT authentication)
+- Employee login scaffolding (pre-seeded test employees)
+- Create international payments (payment creation API)
+- Transaction listing, filtering, and detail endpoints
+- Input validation (regex-based) and server-side sanitization
+- Password hashing (bcrypt) and AES encryption for sensitive fields
+- Brute-force protection (failed login lockouts)
+- Basic session security using JWT with expiry
+- CORS configuration, security headers (helmet), and rate limiting
+- Dev & CI guidance (workflows / scanning setup references included in repo docs)
 
 ---
 
@@ -94,7 +113,44 @@ The backend includes strong encryption, JWT authentication, and Mongoose-based d
 - **CORS**: Configured to allow secure cross-origin requests
 
 
+#### Frontend Security
+
+- **REGEX INPUT VALIDATION** — Client-side validation to reduce invalid inputs before submission.
+- **XSS PROTECTION (CROSS-SITE SCRIPTING)** — Input sanitization and output escaping patterns.
+- **SESSION MANAGEMENT (SESSION JACKING)** — JWT tokens with expiry and storing tokens responsibly.
+- **HTTPS (MITM PROTECTION)** — Project is configured to require HTTPS in production.
+- **CLICKJACKING (CSP)** — Content Security Policy headers included in server headers recommendations.
+
+#### Backend Security
+
+- **REGEX WHITELISTING** — Server-side validation using strict regex patterns for all inputs (IDs, account numbers, SWIFT codes, etc.).
+- **SQL INJECTION PROTECTION** — Using Mongoose.
+- **SESSION SECURITY (SESSION JACKING)** — JWT validation middleware, token expiry, and route protection.
+- **DATA ENCRYPTION** — AES-based field encryption for highly sensitive fields (ID numbers, account numbers) before storage.
+- **BRUTE FORCE** — Login attempt tracking, temporary account lock, and rate-limiting on auth endpoints.
+- **DDoS** — Rate limiting.
+- **SECURITY HEADERS** — Helmet middleware applied.
+- **CORS CONFIGURATION** — CORS restricted to configured frontend origins.
+- **CROSS-SITE SCRIPTING** — Server-side sanitization before storing/displaying content.
+
+
 ---
+
+## GitHub Workflows (DevSecOps)
+
+The repository includes GitHub Actions workflows to automate testing, security scanning, and deployment.
+
+| Extension                     |
+| ----------------------------- | 
+| **ESLint**                    |
+| **REST Client**               |
+| **GitLens**                   | 
+| **Snyk**                      | 
+| **Git Actions**               |
+| **Sonar**                     |
+
+
+
 
 ## Architecture Overview
 ```
@@ -154,36 +210,56 @@ Backend API: http://localhost:5000
 ## Project Structure
 ```
 international-payments-portal/
+├── github/
+│   ├── workflows/
+│   ├── scripts/
+│
 ├── backend/
 │   ├── config/
 │   │   └── db.js
 │   ├── controllers/
-│   │   ├── authController.js
+│   │   ├── customerController.js
+│   │   ├── employeeController.js
 │   │   └── paymentController.js
 │   ├── models/
-│   │   ├── User.js
+│   │   ├── Customer.js
+│   │   ├── Employee.js
+│   │   ├── Role.js
 │   │   └── Payment.js
 │   ├── middleware/
-│   │   ├── authMiddleware.js
-│   │   └── errorMiddleware.js
+│   │   └── auth.js
 │   ├── routes/
-│   │   ├── authRoutes.js
-│   │   └── paymentRoutes.js
+│   │   ├── customerRoutes.js
+│   │   └── employeeRoutes.js
 │   ├── utils/
-│   │   └── encrypt.js
+│   │   ├── encryption.js
+│   │   ├── jwt.js
+│   │   ├── populateDatabase.js
+│   │   └── validate.js
 │   ├── server.js
 │   └── .env
+├── certificates/
+│   ├── server.crt
+│   ├── server.key
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── public/
 │   │   ├── components/
-│   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   └── Payments.jsx
+│   │   ├── scripts/
+│   ├── src/
+│   │   ├── compnents/
+│   │   ├── contexts/
 │   │   ├── services/
 │   │   │   └── api.js
+│   │   ├── pages/
+│   │   │   ├── CustomerDashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   ├── TransactionHistory.jsx
+│   │   │   └── MakePayment.jsx
+│   │   ├── utils/
 │   │   └── App.jsx
 │   └── package.json
 │
