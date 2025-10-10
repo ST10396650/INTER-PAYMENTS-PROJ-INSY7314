@@ -1,161 +1,169 @@
-import React, { useState } from 'react' 
-import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { loginCustomer, loginEmployee } from '../../services/authService'
-import { sanitizeInput, validateInput } from '../../utils/validation'
-import { Eye, EyeOff, User, CreditCard } from 'lucide-react'
+import React, { useState } from 'react'; 
+import { useNavigate, useLocation, Link } from 'react-router-dom'; // React Router for navigation
+import { loginCustomer, loginEmployee } from '../../services/authService'; // Import login functions from service layer
+import { sanitizeInput, validateInput } from '../../utils/validation'; // Utility functions for input sanitization and validation
+import { Eye, EyeOff, User, CreditCard } from 'lucide-react'; // Icon components from lucide-react for UI elements
 
 const LoginForm = () => {
-    const navigate = useNavigate()
-    const location = useLocation()
+    const navigate = useNavigate(); // Hook for navigating programmatically
+    const location = useLocation(); // Hook for accessing location object (e.g., query params, state)
 
+    // State to store form data
     const [formData, setFormData] = useState({
         username: '',
         account_number: '',
         password: '',
-        userType: 'customer'
-    })
+        userType: 'customer' // Default user type is 'customer'
+    });
 
-    const [errors, setErrors] = useState({})
-    const [showPassword, setShowPassword] = useState(false)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [errors, setErrors] = useState({}); // State for form validation errors
+    const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+    const [isSubmitting, setIsSubmitting] = useState(false); // State to track if form is submitting
 
-    const message = location.state?.message
+    const message = location.state?.message; // Message passed through location state (e.g., success message)
 
     // Error messages for validation
     const errorMessages = {
         username: 'Username must be 3-20 characters (letters, numbers, underscore only)',
         account_number: 'Account number must be 10-12 digits'
-    }
+    };
 
+    // Handles input field changes, sanitizing the input
     const handleChange = (e) => {
-        const { name, value } = e.target
-        const sanitizedValue = sanitizeInput(value)
+        const { name, value } = e.target;
+        const sanitizedValue = sanitizeInput(value);
 
         setFormData(prev => ({
             ...prev,
             [name]: sanitizedValue
-        }))
+        }));
 
+        // Clear any existing errors for that field
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
                 [name]: ''
-            }))
+            }));
         }
-    }
+    };
 
+    // Validates the form inputs
     const validateForm = () => {
-        const newErrors = {}
+        const newErrors = {};
 
         if (formData.userType === 'customer') {
             // Validate username for customer
             if (!formData.username) {
-                newErrors.username = 'Username is required'
+                newErrors.username = 'Username is required';
             } else if (!validateInput('username', formData.username)) {
-                newErrors.username = errorMessages.username
+                newErrors.username = errorMessages.username;
             }
 
             // Validate account number for customer
             if (!formData.account_number) {
-                newErrors.account_number = 'Account number is required'
+                newErrors.account_number = 'Account number is required';
             } else if (!validateInput('accountNumber', formData.account_number)) {
-                newErrors.account_number = errorMessages.account_number
+                newErrors.account_number = errorMessages.account_number;
             }
         } else {
             // Validate username/employee ID for employee
             if (!formData.username) {
-                newErrors.username = 'Username or Employee ID is required'
+                newErrors.username = 'Username or Employee ID is required';
             }
         }
 
-        // Validate password for both
+        // Validate password for both customer and employee
         if (!formData.password) {
-            newErrors.password = 'Password is required'
+            newErrors.password = 'Password is required';
         }
 
-        setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
-    }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0; // Return true if no errors
+    };
 
-   const handleSubmit = async (e) => {
-    e.preventDefault()
+    // Handles form submission
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-    if (!validateForm()) {
-        return
-    }
-
-    setIsSubmitting(true)
-    setErrors({})
-
-    try {
-        console.log('🔄 Attempting login...', { 
-            userType: formData.userType,
-            username: formData.username 
-        });
-
-        let response
-
-        if (formData.userType === 'customer') {
-            // Customer login
-            response = await loginCustomer({
-                username: formData.username,
-                accountNumber: formData.account_number,
-                password: formData.password
-            })
-        } else {
-            // Employee login
-            response = await loginEmployee({
-                username: formData.username,
-                password: formData.password
-            })
+        // If form is not valid, return early
+        if (!validateForm()) {
+            return;
         }
 
-        console.log('📦 Response received:', response);
+        setIsSubmitting(true); // Set submitting state
+        setErrors({}); // Clear previous errors
 
-        // Verify token was saved
-        const token = localStorage.getItem('token')
-        const userType = localStorage.getItem('userType')
-        const user = localStorage.getItem('user')
+        try {
+            console.log('🔄 Attempting login...', { 
+                userType: formData.userType,
+                username: formData.username 
+            });
 
-        console.log('🔍 Checking localStorage:', {
-            hasToken: !!token,
-            userType,
-            hasUser: !!user
-        });
+            let response;
 
-        if (!token) {
-            throw new Error('Authentication token not received. Please try again.')
+            // Call the appropriate login function based on user type
+            if (formData.userType === 'customer') {
+                // Customer login
+                response = await loginCustomer({
+                    username: formData.username,
+                    accountNumber: formData.account_number,
+                    password: formData.password
+                });
+            } else {
+                // Employee login
+                response = await loginEmployee({
+                    username: formData.username,
+                    password: formData.password
+                });
+            }
+
+            console.log('📦 Response received:', response);
+
+            // Verify token was saved in localStorage
+            const token = localStorage.getItem('token');
+            const userType = localStorage.getItem('userType');
+            const user = localStorage.getItem('user');
+
+            console.log('🔍 Checking localStorage:', {
+                hasToken: !!token,
+                userType,
+                hasUser: !!user
+            });
+
+            if (!token) {
+                throw new Error('Authentication token not received. Please try again.');
+            }
+
+            console.log('✅ Login successful!');
+
+            // Redirect based on user type
+            const redirectPath = formData.userType === 'employee' 
+                ? '/employee/dashboard' 
+                : '/dashboard';
+            
+            console.log('🔀 Redirecting to:', redirectPath);
+            navigate(redirectPath);
+
+        } catch (error) {
+            console.error('❌ Login failed:', error);
+            
+            // Extract error message
+            let errorMessage = 'Login failed. Please check your credentials.';
+            
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.error) {
+                errorMessage = error.error;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+
+            setErrors({ submit: errorMessage });
+        } finally {
+            setIsSubmitting(false); // Reset submitting state
         }
+    };
 
-        console.log('✅ Login successful!');
-
-        // Navigate based on user type
-        const redirectPath = formData.userType === 'employee' 
-            ? '/employee/dashboard' 
-            : '/dashboard'
-        
-        console.log('🔀 Redirecting to:', redirectPath);
-        navigate(redirectPath)
-
-    } catch (error) {
-        console.error('❌ Login failed:', error);
-        
-        // Extract error message
-        let errorMessage = 'Login failed. Please check your credentials.';
-        
-        if (error.message) {
-            errorMessage = error.message;
-        } else if (error.error) {
-            errorMessage = error.error;
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
-        
-        setErrors({ submit: errorMessage })
-    } finally {
-        setIsSubmitting(false)
-    }
-}
     return (
         <div style={styles.container}>
             <div style={styles.card}>
@@ -163,10 +171,11 @@ const LoginForm = () => {
 
                 {message && (
                     <div style={styles.successMessage}>
-                        {message}
+                        {message} {/* Display message if passed through location state */}
                     </div>
                 )}
 
+                {/* User type selection for customer/employee */}
                 <div style={styles.userTypeSelector}>
                     <button
                         type="button"
@@ -201,6 +210,7 @@ const LoginForm = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} style={styles.form}>
+                    {/* Username/Employee ID input */}
                     <div style={styles.formGroup}>
                         <label htmlFor="username" style={styles.label}>
                             {formData.userType === 'employee' ? 'Username or Employee ID *' : 'Username *'}
@@ -223,6 +233,7 @@ const LoginForm = () => {
                         )}
                     </div>
 
+                    {/* Account number input for customer */}
                     {formData.userType === 'customer' && (
                         <div style={styles.formGroup}>
                             <label htmlFor="account_number" style={styles.label}>
@@ -248,6 +259,7 @@ const LoginForm = () => {
                         </div>
                     )}
 
+                    {/* Password input with toggle visibility */}
                     <div style={styles.formGroup}>
                         <label htmlFor="password" style={styles.label}>
                             Password *
@@ -280,10 +292,12 @@ const LoginForm = () => {
                         )}
                     </div>
 
+                    {/* Display form submission errors */}
                     {errors.submit && (
                         <div style={styles.submitError}>{errors.submit}</div>
                     )}
 
+                    {/* Submit button */}
                     <button
                         type="submit"
                         disabled={isSubmitting}
@@ -296,6 +310,7 @@ const LoginForm = () => {
                     </button>
                 </form>
 
+                {/* Register link for customers */}
                 {formData.userType === 'customer' && (
                     <div style={styles.registerLink}>
                         <span>Don't have an account? </span>
@@ -304,8 +319,9 @@ const LoginForm = () => {
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
+
 
 const styles = {
     container: {
