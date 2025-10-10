@@ -1,15 +1,27 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const helmet = require('helmet'); // security headers
 const cors = require('cors');
 const rateLimit = require('express-rate-limit'); //Prevent DDoS, brute force
 const connectDB = require('./config/database');
+const { createHttpsServer } = require('./config/https');
+
 
 // creates express application
 const app = express();
 
 // connect to Database
 connectDB();
+
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://localhost:3000'], // Your frontend URL
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
 
 // this sets important HTTP security headers
 app.use(helmet());
@@ -30,14 +42,11 @@ app.use(helmet.contentSecurityPolicy({ //prevents XSS attacks
 
 // CORS Configuration, for establishing communication of frontend with backend.
 //this makes sure that the frontend requests are allowed.
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
-};
-app.use(cors(corsOptions));
+
+
+
+
+
 
 // using rate limiting to protect against bots, spam, and hackers.
 const limiter = rateLimit({
@@ -68,6 +77,28 @@ if (process.env.NODE_ENV === 'development') {
     next();
   });
 }
+
+// Redirect HTTP to HTTPS (if SSL is enabled)
+if (process.env.SSL_ENABLED === 'true') {
+  app.use((req, res, next) => {
+    if (!req.secure && req.get('x-forwarded-proto') !== 'https') {
+      const httpsUrl = `https://${req.headers.host.replace(/:\d+$/, '')}:${process.env.HTTPS_PORT || 5443}${req.url}`;
+      return res.redirect(301, httpsUrl);
+    }
+    next();
+  });
+}
+
+// Health Check Route
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Server is running',
+    protocol: req.protocol,
+    secure: req.secure,
+    timestamp: new Date().toISOString()
+  });
+});
 
 
 // shows the API information
@@ -107,12 +138,33 @@ app.use((err, req, res, next) => {
   });
 });
 
-// starting the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`\n Server running on port ${PORT}`);
-  console.log(` API: http://localhost:${PORT}`);
+// Start Servers
+const HTTP_PORT = process.env.PORT || 5000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 5443;
+
+// Create HTTP server
+const httpServer = http.createServer(app);
+
+
+
+// Start HTTP server
+httpServer.listen(HTTP_PORT, () => {
+  console.log(`\n🌐 HTTP Server running on port ${HTTP_PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 HTTP: http://localhost:${HTTP_PORT}`);
 });
+
+// Create and start HTTPS server (if SSL is enabled)
+const httpsServer = createHttpsServer(app);
+if (httpsServer) {
+  httpsServer.listen(HTTPS_PORT, () => {
+    console.log(`🔒 HTTPS Server running on port ${HTTPS_PORT}`);
+    console.log(`🔗 HTTPS: https://localhost:${HTTPS_PORT}`);
+    console.log(`💚 Health Check: https://localhost:${HTTPS_PORT}/health\n`);
+  });
+} else {
+  console.log(`💚 Health Check: http://localhost:${HTTP_PORT}/health\n`);
+}
 
 
 process.on('unhandledRejection', (err) => {
