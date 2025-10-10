@@ -97,6 +97,7 @@ The backend includes strong encryption, JWT authentication, and Mongoose-based d
 ---
 
 ## Architecture Overview
+```
 Frontend (React)
 │
 ├── Pages (Login, Register, Payments)
@@ -151,7 +152,7 @@ Backend API: http://localhost:5000
 ---
 
 ## Project Structure
-
+```
 international-payments-portal/
 ├── backend/
 │   ├── config/
