@@ -26,9 +26,27 @@ export const AuthProvider = ({ children }) => {
 
     const verifyToken = useCallback(async () => {
         try {
-            setLoading(true)
-            const userData = await authService.verifyToken(token)
-            setUser(userData)
+             setLoading(true)
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+            logout()
+            return
+        }
+        
+        // Try to get user from localStorage first
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            setUser(parsedUser)
+            console.log('✅ User loaded from localStorage:', parsedUser)
+        }
+        
+        // Then verify with backend
+        const userData = await authService.verifyToken(token)
+        setUser(userData)
+        console.log('✅ User verified from backend:', userData)
+        
         } catch (error) {
             console.error('Token verification failed:', error)
             logout()

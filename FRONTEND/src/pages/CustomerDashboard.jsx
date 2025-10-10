@@ -141,7 +141,7 @@ const CustomerDashboard = () => {
                     ) : (
                         <div style={styles.transactionsList}>
                             {transactions.map(transaction => (
-                                <div key={transaction._id} style={styles.transactionItem}>
+                                <div key={transaction._id || transaction.id || transaction.transaction_id}  style={styles.transactionItem}>
                                     <div style={styles.transactionMain}>
                                         <div style={styles.transactionInfo}>
                                             <div style={styles.transactionAmount}>

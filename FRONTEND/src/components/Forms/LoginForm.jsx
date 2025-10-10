@@ -77,7 +77,7 @@ const LoginForm = () => {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!validateForm()) {
@@ -88,32 +88,70 @@ const LoginForm = () => {
     setErrors({})
 
     try {
+        console.log('🔄 Attempting login...', { 
+            userType: formData.userType,
+            username: formData.username 
+        });
+
+        let response
+
         if (formData.userType === 'customer') {
             // Customer login
-            await loginCustomer({
+            response = await loginCustomer({
                 username: formData.username,
                 accountNumber: formData.account_number,
                 password: formData.password
             })
         } else {
             // Employee login
-            await loginEmployee({
+            response = await loginEmployee({
                 username: formData.username,
                 password: formData.password
             })
         }
 
-        // If we get here, login was successful
+        console.log('📦 Response received:', response);
+
+        // Verify token was saved
+        const token = localStorage.getItem('token')
+        const userType = localStorage.getItem('userType')
+        const user = localStorage.getItem('user')
+
+        console.log('🔍 Checking localStorage:', {
+            hasToken: !!token,
+            userType,
+            hasUser: !!user
+        });
+
+        if (!token) {
+            throw new Error('Authentication token not received. Please try again.')
+        }
+
+        console.log('✅ Login successful!');
+
         // Navigate based on user type
         const redirectPath = formData.userType === 'employee' 
             ? '/employee/dashboard' 
             : '/dashboard'
+        
+        console.log('🔀 Redirecting to:', redirectPath);
         navigate(redirectPath)
+
     } catch (error) {
-        // Show error from backend
-        setErrors({ 
-            submit: error.message || 'Login failed. Please check your credentials.' 
-        })
+        console.error('❌ Login failed:', error);
+        
+        // Extract error message
+        let errorMessage = 'Login failed. Please check your credentials.';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        } else if (error.error) {
+            errorMessage = error.error;
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+        
+        setErrors({ submit: errorMessage })
     } finally {
         setIsSubmitting(false)
     }

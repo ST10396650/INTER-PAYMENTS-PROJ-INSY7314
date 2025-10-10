@@ -27,7 +27,7 @@ function App() {
                   <Route path="/login" element={<Login />} /> 
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/make-payment" element={<MakePayment />} />
-                  <Route path="/transactions" element={<TransactionHistory />} />
+                  <Route path="//transaction-history" element={<TransactionHistory />} />
                 </Routes>
               </main>
               <Footer />

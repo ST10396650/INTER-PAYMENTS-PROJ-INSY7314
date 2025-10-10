@@ -25,18 +25,33 @@ export const loginCustomer = async (credentials) => {
       password: credentials.password,
     });
     
+    console.log('🔍 Login response:', response.data); // Debug log
+    
     // Save token and user data to localStorage
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data));
       localStorage.setItem('userType', 'customer');
+      
+      console.log('✅ Token saved:', response.data.token); // Debug log
+    } else {
+      console.error('❌ No token in response'); // Debug log
     }
     
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Login failed' };
+    console.error('❌ Login error:', error); // Debug log
+    
+    // Extract error message properly
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error ||
+                        error.message || 
+                        'Login failed';
+    
+    throw new Error(errorMessage);
   }
 };
+
 
 // Employee Login
 export const loginEmployee = async (credentials) => {
